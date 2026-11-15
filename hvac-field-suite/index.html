@@ -444,6 +444,37 @@
     .therm-reverse .field-group { max-width: 220px; }
     input[type="range"] { accent-color: var(--sky-24v); }
 
+    /* ================= TAB 4: TEST MODE PROCEDURE ================= */
+    .tm-head-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .tm-head-controls select { max-width: 320px; }
+    .tm-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .tm-progress { height: 6px; background: var(--bg-input); border-radius: 99px; overflow: hidden; margin: 4px 0 12px; }
+    .tm-progress div { height: 100%; background: var(--emerald-pass); transition: width 0.2s; }
+    .tm-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+    @media (max-width: 900px) { .tm-grid { grid-template-columns: 1fr; } }
+    .tm-section-title { font-family: var(--font-mono); font-size: 0.74rem; color: var(--amber-115v); text-transform: uppercase; letter-spacing: 0.05em; margin: 4px 0 6px; }
+    .tm-steps { list-style: none; counter-reset: tm; display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .tm-step { counter-increment: tm; }
+    .tm-step label {
+      display: grid; grid-template-columns: 22px 28px minmax(0, 1fr); gap: 4px; align-items: start; cursor: pointer;
+      background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 9px 10px;
+    }
+    .tm-step label::before { content: counter(tm) "."; grid-column: 2; grid-row: 1; font-family: var(--font-mono); font-weight: 800; color: var(--sky-24v); font-size: 0.8rem; padding-top: 1px; }
+    .tm-step input { grid-column: 1; grid-row: 1; width: 17px; height: 17px; margin-top: 2px; accent-color: var(--emerald-pass); }
+    .tm-step .tm-body { grid-column: 3; grid-row: 1; font-size: 0.84rem; color: #E2E8F0; }
+    .tm-step .tm-body strong { color: #fff; }
+    .tm-step .tm-check { display: block; margin-top: 4px; font-family: var(--font-mono); font-size: 0.74rem; color: #93C5FD; }
+    .tm-step .tm-warn { display: block; margin-top: 4px; font-size: 0.76rem; color: #FCA5A5; }
+    .tm-step.done label { border-color: #059669; background: rgba(16,185,129,0.08); }
+    .tm-step.done .tm-body { color: var(--text-secondary); }
+    .tm-step.is-exit label::before { color: var(--amber-115v); }
+    .tm-side .insp-text-box { margin-bottom: 10px; font-size: 0.8rem; }
+    .tm-side ul { padding-left: 18px; }
+    .tm-side li { margin-bottom: 3px; }
+    .tm-seq { width: 100%; border-collapse: collapse; font-size: 0.78rem; font-family: var(--font-mono); }
+    .tm-seq td { border-bottom: 1px solid var(--border-subtle); padding: 5px 6px; vertical-align: top; }
+    .tm-seq td:first-child { color: var(--sky-24v); white-space: nowrap; }
+
     /* ================= TAB 5: LOGGER ================= */
     .logger-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 14px; }
     @media (max-width: 960px) { .logger-grid { grid-template-columns: 1fr; } }
@@ -816,6 +847,40 @@
             <input type="search" id="alarmSearchInput" class="text-input" placeholder="Search alarm (-51, HP, STO, E04, P22)..." aria-label="Search alarms" style="max-width:280px;font-family:var(--font-sans);" />
           </div>
           <div id="alarmListContainer" style="max-height:420px;overflow-y:auto;"></div>
+        </div>
+      </div>
+
+      <div class="panel-card" id="testModeCard">
+        <div class="row-between">
+          <h2 style="margin:0;">🧪 Put the Unit in Test Mode</h2>
+          <div class="tm-head-controls">
+            <label for="testModeSelect" class="sr-only">Test mode procedure</label>
+            <select id="testModeSelect" class="text-input" style="font-family:var(--font-sans);"></select>
+            <button type="button" class="secondary-btn small" id="testModeMatchBtn">↺ Match Active Unit</button>
+          </div>
+        </div>
+        <div class="tm-meta" id="testModeMeta"></div>
+        <p class="muted-p" id="testModeIntro"></p>
+        <div class="tm-progress" aria-hidden="true"><div id="testModeBar" style="width:0%"></div></div>
+        <div class="tm-grid">
+          <div>
+            <div class="tm-section-title">▶ Enter test mode &amp; run outputs</div>
+            <ol class="tm-steps" id="testModeSteps"></ol>
+            <div class="tm-section-title">■ Exit test mode &amp; return to normal control</div>
+            <ol class="tm-steps" id="testModeExit"></ol>
+            <div class="btn-row">
+              <button type="button" class="primary-btn" id="testModeLogBtn">📝 Log Test to Report</button>
+              <button type="button" class="secondary-btn" id="testModeResetBtn">↺ Uncheck All</button>
+              <button type="button" class="secondary-btn" id="testModePracticeBtn" hidden>🎮 Practice on Keypad Sim</button>
+            </div>
+          </div>
+          <aside class="tm-side">
+            <div class="tm-section-title">⚠ Before you start</div>
+            <div class="insp-text-box"><ul id="testModeSafety"></ul></div>
+            <div class="tm-section-title" id="testModeSeqTitle">Typical test sequence</div>
+            <div class="insp-text-box"><table class="tm-seq"><tbody id="testModeSeq"></tbody></table></div>
+            <p class="decode-note" id="testModeSource"></p>
+          </aside>
         </div>
       </div>
 
@@ -3083,6 +3148,257 @@
     });
 
     /* =====================================================================
+       TAB 4 — UNIT TEST MODE PROCEDURES
+       ===================================================================== */
+    const COMMON_SAFETY = [
+      "Tell the building operator / BAS tech before you start — test mode overrides normal control and the BAS may alarm.",
+      "Close the panel doors you don't need open; keep hands clear of fans, belts and terminals while outputs are forced.",
+      "Prove airflow first: never run compressors or heat without the supply fan running.",
+      "Respect anti-short-cycle: allow at least 5 minutes off between compressor starts.",
+      "Verify crankcase heaters have been energized (cold-weather / long-off units) before running compressors."
+    ];
+
+    const TEST_MODES = {
+      york_ipu: {
+        label: "York Series 100 — IPU Service / Force Outputs",
+        match: "York Series 100 IPU",
+        intro: "Forces individual digital/analog outputs from the IPU keypad. The unit rocker switch must be in LOCAL STOP; returning it to RUN cancels every forced output.",
+        tools: ["IPU keypad", "Multimeter", "Clamp meter", "Gauges/probes"],
+        practice: true,
+        steps: [
+          { t: "<strong>Record the starting state.</strong> Press STATUS and HISTORY; note active alarms, setpoints and any BAS overrides.", c: "Check: no active hard lockout you haven't investigated." },
+          { t: "<strong>Turn the unit rocker switch to LOCAL STOP (OFF).</strong> All normal outputs drop out.", c: "IPU STATUS reads LOCAL STOP." },
+          { t: "<strong>Press SERVICE</strong> and enter the field access code, then press ✓.", c: "Simulator code: 1325 — confirm the code for your IPU firmware." },
+          { t: "<strong>Press ► (or FORCE DO/AO)</strong> to open the output test list.", w: "Not allowed unless the rocker switch is in LOCAL STOP." },
+          { t: "<strong>Force the SUPPLY FAN relay first</strong> — ▲▼ to select, ✓ to force ON.", c: "Meter: Danfoss Term 18 → 20 = +24 VDC, drive shows RUN, Param 16-62 has a speed reference." },
+          { t: "<strong>Force the economizer AO</strong> (e.g. 50%) and watch the damper stroke.", c: "Meter: 2–10 VDC at actuator signal, 24 VAC supply." },
+          { t: "<strong>Force compressor stages one at a time</strong> (1A, 1B, 2A…). Let each run 5+ minutes.", c: "Meter: 115 VAC at contactor coil; clamp amps ≤ RLA; record suction/liquid pressures.", w: "Supply fan must stay running. Watch head pressure — HP trips count toward the 3-trip lockout." },
+          { t: "<strong>Force condenser fans and heat / HGRH outputs</strong> as needed for the complaint.", c: "Meter: 115 VAC at fan contactor coils; HGRH-B S+/S- signal 0–10 VDC." },
+          { t: "<strong>Record readings</strong> in Tab 5 as you go (amps, pressures, voltages).", c: "Use the Tab 4 calculators for superheat/subcooling and voltage imbalance." }
+        ],
+        exit: [
+          { t: "<strong>Un-force outputs</strong> in reverse order: heat → compressors → condenser fans → economizer → supply fan last." },
+          { t: "<strong>Return the rocker switch to RUN (ON).</strong> This cancels any remaining forced outputs.", c: "IPU STATUS returns to normal operation." },
+          { t: "<strong>Press RESET LOCKOUT</strong> if a trip occurred during testing (after fixing the cause)." },
+          { t: "<strong>Confirm the BAS has control again</strong> — speed reference back at Term 53/55, no overrides left on." }
+        ],
+        seq: [["Fan", "Supply fan relay → VFD run"], ["Econ", "Economizer AO 0–100%"], ["Cool", "Compressors 1A, 1B, 2A, 2B, 3A, 3B (one at a time)"], ["Cond", "Condenser fan contactors"], ["Heat", "Heat / HGRH outputs"]],
+        source: "Matches this app's IPU keypad simulator. Menu names vary by IPU firmware — follow the unit's IPU manual."
+      },
+      trane_rt: {
+        label: "Trane Voyager / Precedent — ReliaTel Step Test",
+        match: "Trane",
+        intro: "ReliaTel (RTRM) units have a built-in test mode started by momentarily jumpering the TEST 1 and TEST 2 terminals on the low-voltage terminal board. Each jumper touch advances one step. Symbio-controlled units use the Symbio display/service tool instead.",
+        tools: ["Insulated jumper", "Multimeter", "Clamp meter", "Gauges"],
+        steps: [
+          { t: "<strong>Identify the controller.</strong> ReliaTel = RTRM board with an LTB terminal strip; Symbio = touchscreen/web service tool.", c: "If Symbio, use Service → Manual Override / Service Test on the display instead of jumpers." },
+          { t: "<strong>Remove or disable the zone sensor / BAS call</strong> so it doesn't fight the test (note what you disconnected)." },
+          { t: "<strong>Locate TEST 1 and TEST 2</strong> on the low-voltage terminal board (LTB). Check the unit wiring diagram for the exact terminal numbers." },
+          { t: "<strong>Momentarily jumper TEST 1 to TEST 2 for about 2–3 seconds</strong>, then remove the jumper. The unit enters Step 1 (indoor fan ON).", c: "Meter: fan contactor coil / ECM enable energized; supply fan running.", w: "Momentary only — follow the service manual if using the continuous or resistance test modes." },
+          { t: "<strong>Jumper momentarily again</strong> to advance each step: economizer → cool 1 → cool 2 → heat 1 → heat 2.", c: "At each step verify the contactor coil voltage, then clamp amps and check pressures." },
+          { t: "<strong>Hold each cooling step long enough</strong> to stabilize (≈5 min) before reading superheat/subcooling." },
+          { t: "<strong>Record readings</strong> in Tab 5 at each step." }
+        ],
+        exit: [
+          { t: "<strong>Advance past the last step</strong>, or remove unit power for a few seconds to end test mode (per manual)." },
+          { t: "<strong>Reconnect the zone sensor / BAS wiring</strong> you removed." },
+          { t: "<strong>Confirm normal operation</strong> — the unit responds to the zone sensor or BAS call and the RTRM LED shows normal." }
+        ],
+        seq: [["Step 1", "Indoor fan"], ["Step 2", "Economizer open"], ["Step 3", "Cool stage 1"], ["Step 4", "Cool stage 2"], ["Step 5", "Heat stage 1"], ["Step 6", "Heat stage 2"]],
+        source: "Typical ReliaTel sequence — exact step order and terminals vary by model; check the unit's Installation, Operation & Maintenance manual."
+      },
+      carrier_cl: {
+        label: "Carrier WeatherMaster / WeatherExpert — Service Test",
+        match: "Carrier",
+        intro: "Carrier units with ComfortLink, SystemVu or RTU Open controls have a Service Test mode on the display or service tool. Electromechanical units with no controller use the 24VAC jumper method instead.",
+        tools: ["Unit display / Navigator", "Multimeter", "Clamp meter", "Gauges"],
+        steps: [
+          { t: "<strong>Identify the controller</strong>: ComfortLink (scrolling marquee / Navigator), SystemVu (display on control board), or none.", c: "No controller? Use the 'Generic 24VAC RTU' procedure in the dropdown." },
+          { t: "<strong>Remove the thermostat/BAS call</strong> or set the unit so no demand is active (note what you changed)." },
+          { t: "<strong>Open the Service Test menu</strong> and set TEST (Service Test) to <strong>ON</strong>.", c: "ComfortLink: Service Test → TEST = ON. SystemVu: Service → Service Test. Enter the password if prompted." },
+          { t: "<strong>Test the indoor fan first</strong> (Independent outputs / Fans) and confirm airflow.", c: "Meter: fan contactor coil or ECM/VFD enable; supply fan running." },
+          { t: "<strong>Test economizer position</strong> and watch the damper move.", c: "Actuator signal 2–10 VDC, 24 VAC supply." },
+          { t: "<strong>Test cooling stages one at a time</strong> (compressor A1, A2, …) and condenser fans.", c: "Clamp amps vs RLA; record pressures after ≈5 minutes.", w: "Keep the indoor fan running while compressors are on." },
+          { t: "<strong>Test heat stages</strong> if the complaint involves heating.", c: "Gas: inducer → igniter → gas valve → flame signal (µA). Electric: element amps." },
+          { t: "<strong>Record readings</strong> in Tab 5." }
+        ],
+        exit: [
+          { t: "<strong>Turn each test output OFF</strong>, then set TEST (Service Test) back to <strong>OFF</strong>." },
+          { t: "<strong>Restore the thermostat / BAS connection</strong> and any settings you changed." },
+          { t: "<strong>Confirm the unit returns to normal run mode</strong> on the display with no active alarms." }
+        ],
+        seq: [["Fans", "Indoor fan, condenser fans"], ["Econ", "Economizer position"], ["Cool", "Compressor stages A1, A2, B1…"], ["Heat", "Heat stages 1, 2"], ["Indp", "Independent outputs (alarm relay, etc.)"]],
+        source: "Menu names differ between ComfortLink, SystemVu and RTU Open — follow the unit's Controls, Start-Up, Operation & Service manual."
+      },
+      toshiba_vrf: {
+        label: "Toshiba Carrier VRF — Test Run (Wired Remote)",
+        match: "Toshiba Carrier",
+        intro: "Toshiba VRF systems are put into a forced test run from an indoor unit's wired remote controller (or from the outdoor unit interface PCB switches, per the service manual). Test run ignores room temperature.",
+        tools: ["Wired remote controller", "Multimeter", "Clamp meter", "Gauges"],
+        steps: [
+          { t: "<strong>Confirm power has been on long enough</strong> for the crankcase heater (at start-up typically 12 hours — follow the manual).", w: "Running a cold compressor without crankcase heat risks liquid slugging." },
+          { t: "<strong>Clear active check codes</strong> (E04, P22…) — test run won't start with a communication or protection fault.", c: "Use the Tab 4 alarm decoder." },
+          { t: "<strong>On the wired remote, press and hold TEST for 4 seconds or more</strong> until \"TEST\" appears on the display." },
+          { t: "<strong>Press MODE</strong> to choose COOL or HEAT." },
+          { t: "<strong>Press ON/OFF</strong> to start the test run.", c: "Indoor fan starts; outdoor unit ramps the inverter compressor after its startup delay." },
+          { t: "<strong>Let it stabilize ≈10–15 minutes</strong>, then take readings.", c: "Check discharge/suction pressures, indoor air ΔT, outdoor fan rotation and inverter frequency." },
+          { t: "<strong>Record readings</strong> in Tab 5." }
+        ],
+        exit: [
+          { t: "<strong>Press ON/OFF</strong> to stop, then <strong>press TEST</strong> again to leave test mode (\"TEST\" disappears).", c: "Test run also ends automatically after its time limit (≈60 min on many models)." },
+          { t: "<strong>Restore the normal setpoint and schedule</strong> on the remote / central controller." },
+          { t: "<strong>Confirm no check code is displayed</strong> after returning to normal operation." }
+        ],
+        seq: [["Hold TEST", "≥ 4 s → TEST shown"], ["MODE", "Select COOL or HEAT"], ["ON/OFF", "Start forced run"], ["TEST", "Exit test run"]],
+        source: "Typical Toshiba wired-remote procedure — button labels differ on some remotes; outdoor-PCB test switches are in the service manual."
+      },
+      lennox_m3: {
+        label: "Lennox Commercial — Unit Controller Test",
+        match: "Lennox Commercial",
+        intro: "Lennox Prodigy (M2/M3) and CORE controllers include a service test menu on the unit controller display for running the blower, cooling and heating stages.",
+        tools: ["Unit controller display", "Multimeter", "Clamp meter", "Gauges"],
+        steps: [
+          { t: "<strong>Remove the thermostat / BAS demand</strong> or note it so it doesn't interfere." },
+          { t: "<strong>On the unit controller, open the SERVICE → TEST menu</strong> (Prodigy) or the service test screen (CORE).", c: "Enter the service password if prompted." },
+          { t: "<strong>Run the BLOWER test first</strong> and confirm airflow.", c: "Blower contactor/VFD enable energized; motor amps ≤ FLA." },
+          { t: "<strong>Run cooling stages one at a time.</strong>", c: "Contactor coil 24 VAC; compressor amps; pressures after ≈5 min.", w: "Blower must run during compressor tests." },
+          { t: "<strong>Run heating stages</strong> if needed.", c: "Gas: flame signal µA; electric: element amps." },
+          { t: "<strong>Record readings</strong> in Tab 5." }
+        ],
+        exit: [
+          { t: "<strong>Stop each test and exit the TEST menu</strong> to return the controller to normal operation." },
+          { t: "<strong>Restore thermostat / BAS demand</strong>." },
+          { t: "<strong>Check the controller's alarm log</strong> for codes created during the test." }
+        ],
+        seq: [["Blower", "Indoor blower"], ["Cool", "Cooling stages 1, 2, …"], ["Heat", "Heating stages 1, 2"], ["Econ", "Economizer (if equipped)"]],
+        source: "Menu paths vary by Prodigy/CORE version — follow the unit controller setup guide."
+      },
+      generic_24v: {
+        label: "Generic 24VAC RTU — Manual Jumper Test",
+        match: "Generic / electromechanical",
+        intro: "For units with no test mode (thermostat-controlled, electromechanical), simulate each call by jumpering R to the call terminal at the unit's low-voltage strip.",
+        tools: ["Insulated jumper wires", "Multimeter", "Clamp meter", "Gauges"],
+        steps: [
+          { t: "<strong>Turn the thermostat/BAS off</strong> or lift its wires from G, Y1, Y2, W1 so it can't call at the same time. Label what you lift." },
+          { t: "<strong>Verify 24 VAC from R to C</strong> at the unit terminal strip.", c: "Normal: 24–28 VAC." },
+          { t: "<strong>Jumper R → G</strong> — indoor fan should start.", c: "G–C 24 VAC; blower running; amps ≤ FLA." },
+          { t: "<strong>Add R → Y1</strong> (keep G) — first-stage cooling.", c: "CC coil 24 VAC; compressor + condenser fan run; record pressures after ≈5 min.", w: "Never jumper R to C — it shorts the transformer and blows the 3A fuse." },
+          { t: "<strong>Add R → Y2</strong> for second stage (if equipped).", c: "Second contactor energizes." },
+          { t: "<strong>Remove Y jumpers, wait 5 min, then jumper R → W1</strong> for heat (W2 for second stage).", c: "Gas: inducer → igniter → gas valve → flame µA. Electric: heater amps." },
+          { t: "<strong>Record readings</strong> in Tab 5." }
+        ],
+        exit: [
+          { t: "<strong>Remove every jumper</strong> — count them back." },
+          { t: "<strong>Reconnect the thermostat/BAS wires</strong> to their labeled terminals." },
+          { t: "<strong>Make a real call from the thermostat/BAS</strong> and confirm the unit responds normally." }
+        ],
+        seq: [["R → G", "Indoor fan"], ["R → G + Y1", "Cooling stage 1"], ["+ Y2", "Cooling stage 2"], ["R → W1 / W2", "Heat stage 1 / 2"]],
+        source: "Works on most thermostat-controlled units. Units with a control board may add delays (e.g. 5-min anti-short-cycle, blower on/off delays)."
+      }
+    };
+
+    function testModeForUnit(u) {
+      if (u.arch === "york_ipu") return "york_ipu";
+      if (u.mfg === "Trane") return "trane_rt";
+      if (u.mfg === "Carrier") return "carrier_cl";
+      if (u.mfg === "Toshiba Carrier" || u.arch === "vrf_inverter") return "toshiba_vrf";
+      if (u.mfg === "Lennox Commercial") return "lennox_m3";
+      return "generic_24v";
+    }
+
+    let tmKey = null;
+    let tmUnitForKey = null;
+    const tmChecks = {};
+
+    function tmState(key) {
+      if (!tmChecks[key]) tmChecks[key] = { steps: [], exit: [] };
+      return tmChecks[key];
+    }
+
+    function renderTestMode() {
+      const u = getActiveUnit();
+      if (tmUnitForKey !== u.id) { tmKey = testModeForUnit(u); tmUnitForKey = u.id; }
+      const p = TEST_MODES[tmKey];
+      const st = tmState(tmKey);
+      const matched = testModeForUnit(u) === tmKey;
+
+      $("testModeSelect").innerHTML = Object.keys(TEST_MODES).map(function (k) {
+        return '<option value="' + k + '"' + (k === tmKey ? " selected" : "") + ">" + esc(TEST_MODES[k].label) + "</option>";
+      }).join("");
+      $("testModeMeta").innerHTML =
+        '<span class="meta-chip">' + (matched ? "✓ MATCHES " + esc(u.tag) : "⚠ NOT FOR " + esc(u.tag)) + "</span>" +
+        p.tools.map(function (t) { return '<span class="meta-chip" style="color:#CBD5E1;">' + esc(t) + "</span>"; }).join("");
+      $("testModeIntro").textContent = p.intro;
+      $("testModeSafety").innerHTML = COMMON_SAFETY.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("");
+      $("testModeSeq").innerHTML = p.seq.map(function (r) { return "<tr><td>" + esc(r[0]) + "</td><td>" + esc(r[1]) + "</td></tr>"; }).join("");
+      $("testModeSource").textContent = p.source;
+      $("testModePracticeBtn").hidden = !p.practice;
+
+      function stepsHtml(list, group) {
+        return list.map(function (s, i) {
+          const done = !!st[group][i];
+          // Step text is trusted static markup authored above (contains <strong>), not user input.
+          return '<li class="tm-step' + (done ? " done" : "") + (group === "exit" ? " is-exit" : "") + '"><label>' +
+            '<input type="checkbox" data-tm-group="' + group + '" data-tm-idx="' + i + '"' + (done ? " checked" : "") + " />" +
+            '<span class="tm-body">' + s.t + (s.c ? '<span class="tm-check">' + esc(s.c) + "</span>" : "") +
+            (s.w ? '<span class="tm-warn">⚠ ' + esc(s.w) + "</span>" : "") + "</span></label></li>";
+        }).join("");
+      }
+      $("testModeSteps").innerHTML = stepsHtml(p.steps, "steps");
+      $("testModeExit").innerHTML = stepsHtml(p.exit, "exit");
+      updateTestModeProgress();
+    }
+
+    function updateTestModeProgress() {
+      const p = TEST_MODES[tmKey];
+      const st = tmState(tmKey);
+      const total = p.steps.length + p.exit.length;
+      const done = st.steps.filter(Boolean).length + st.exit.filter(Boolean).length;
+      $("testModeBar").style.width = (done / total * 100) + "%";
+    }
+
+    function onTestModeCheck(e) {
+      const cb = e.target.closest("[data-tm-group]");
+      if (!cb) return;
+      tmState(tmKey)[cb.dataset.tmGroup][parseInt(cb.dataset.tmIdx, 10)] = cb.checked;
+      cb.closest(".tm-step").classList.toggle("done", cb.checked);
+      updateTestModeProgress();
+    }
+    $("testModeSteps").addEventListener("change", onTestModeCheck);
+    $("testModeExit").addEventListener("change", onTestModeCheck);
+
+    $("testModeSelect").addEventListener("change", function () {
+      tmKey = this.value;
+      renderTestMode();
+    });
+    $("testModeMatchBtn").addEventListener("click", function () {
+      tmUnitForKey = null;
+      renderTestMode();
+    });
+    $("testModeResetBtn").addEventListener("click", function () {
+      tmChecks[tmKey] = { steps: [], exit: [] };
+      renderTestMode();
+    });
+    $("testModePracticeBtn").addEventListener("click", function () {
+      document.querySelector(".york-bezel").scrollIntoView({ behavior: "smooth", block: "center" });
+      $("toggleLocalStopBtn").focus();
+      showToast("Toggle LOCAL STOP, then SERVICE → 1325 → ✓ → ►");
+    });
+    $("testModeLogBtn").addEventListener("click", function () {
+      const p = TEST_MODES[tmKey];
+      const st = tmState(tmKey);
+      const done = st.steps.filter(Boolean).length;
+      const exited = p.exit.every(function (_, i) { return st.exit[i]; });
+      const line = "[Test Mode] " + p.label + " — " + done + "/" + p.steps.length + " test steps completed; " +
+        (exited ? "unit returned to normal control." : "EXIT STEPS NOT ALL CONFIRMED — verify unit is back in normal control.");
+      const notes = $("logNotes");
+      notes.value = notes.value ? notes.value.replace(/\s+$/, "") + "\n" + line : line;
+      updateReport();
+      persistLoggerDraft();
+      showToast(exited ? "Test logged to Tab 5 report" : "Logged — exit steps not all checked", !exited);
+    });
+
+    /* =====================================================================
        TAB 4 — PT / SUPERHEAT / SUBCOOLING
        ===================================================================== */
     // Saturation pressure (psig) at temperature (°F). R-410A, R-22, R-32 are near-azeotropic/pure.
@@ -3525,6 +3841,7 @@
       renderTsList();
       renderTsStage();
       renderLcd();
+      renderTestMode();
       updateVImb();
       updateReport();
     }
